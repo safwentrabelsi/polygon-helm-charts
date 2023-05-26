@@ -66,6 +66,7 @@ fi
 # If heimdalld container and we need to bootstrap on first run then download the snapshot
 if [ ! -n "$REST_SERVER" ] && [ "${BOOTSTRAP}" == 1 ]  && [ ! -f "$HEIMDALLD_HOME/bootstrapped" ];
 then
+  cd ${HEIMDALLD_HOME}
   echo "downloading snapshot from ${SNAPSHOT_URL}"
   mkdir -p ${HEIMDALLD_HOME}/${extract_dir}
   aria2c -x6 -s6 "${SNAPSHOT_URL}" 
