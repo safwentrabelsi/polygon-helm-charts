@@ -1,0 +1,57 @@
+configname: polygon-config-map-test
+pvc:
+  name: pvc-polygon-mainnet
+  size: 4Ti
+  storageClass: YOUR_STORAGE_CLASS
+
+deployment:
+  mountPath: /home
+  name: polygon-mainnet-test
+  volumeName: data
+  metadata:
+    labels:
+      network: mainnet
+      protocol: polygon
+
+  posLayer: 
+    workingDir: /home/heimdall
+    image:
+      repository:  0xpolygon/heimdall
+      tag: 0.3.3
+      pullPolicy: Always
+    env:
+      NETWORK: mainnet
+      MONIKER: ""
+      BOOTSTRAP: "1"
+      ETH_RPC_URL: YOUR_STORAGE_CLASS
+    ports:
+      - 26656
+      - 26657
+  posLayerRest:
+    workingDir: /home/heimdall
+    image:
+      repository:  0xpolygon/heimdall
+      tag: 0.3.3
+      pullPolicy: Always
+    env:
+      REST_SERVER: "1"
+    ports:
+      - 1317
+  blockProducerLayer:
+    workingDir: /home/bor
+    image:
+      repository:  0xpolygon/bor
+      tag: 0.3.7
+      pullPolicy: Always
+    env:
+      NETWORK: mainnet
+      BOOTSTRAP: "1"
+      MAXPEERS: ""
+    ports:
+      - 30303
+      - 8545
+    resources:
+      requests:
+        memory: 20Gi
+        cpu: 3
+  

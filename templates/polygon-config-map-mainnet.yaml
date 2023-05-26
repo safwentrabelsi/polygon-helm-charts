@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Values.configname }}
+  labels:
+    {{- range $key, $val := .Values.deployment.metadata.labels }}
+    {{ $key }}: {{ $val | quote }}
+    {{- end}} 
+data:
+  entrypointHeimdall.sh: |
+{{ .Files.Get "entrypointHeimdall.sh" | indent 4 }}
+
+  entrypointBor.sh:  |
+{{ .Files.Get "entrypointBor.sh" | indent 4 }}

@@ -1,0 +1,109 @@
+---
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: {{ .Values.pvc.name }}
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: {{ .Values.pvc.size }}
+  storageClassName: {{ .Values.pvc.storageClass }}
+
+
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.deployment.name }}
+spec:
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      {{- range $key, $val := .Values.deployment.metadata.labels }}
+      {{ $key }}: {{ $val | quote }}
+      {{- end}} 
+  template:
+    metadata:
+      labels:
+        {{- range $key, $val := .Values.deployment.metadata.labels }}
+        {{ $key }}: {{ $val | quote }}
+        {{- end}}
+    spec:
+      containers:
+        - command: ["/bin/sh", "-c","./entrypointHeimdall.sh"]
+          image: "{{ .Values.deployment.posLayer.image.repository }}:{{ .Values.deployment.posLayer.image.tag }}"
+          imagePullPolicy: {{ .Values.deployment.posLayer.image.pullPolicy }}
+          name: pos-layer
+          env:
+          {{- range $key, $val := .Values.deployment.posLayer.env }}
+             - name: {{ $key }}
+               value:  {{ $val | quote }}
+           {{- end}}
+          ports:
+          {{- range $index, $port := .Values.deployment.posLayer.ports }}
+            - containerPort: {{ $port }}
+          {{- end}}
+          workingDir: {{ .Values.deployment.posLayer.workingDir }}
+          volumeMounts:
+            - mountPath: {{ .Values.deployment.mountPath }}
+              name: {{ .Values.deployment.volumeName }}
+            - mountPath: "{{ .Values.deployment.posLayer.workingDir }}/entrypointHeimdall.sh"
+              name: {{ .Values.configname }}
+              subPath: entrypointHeimdall.sh
+        - command: ["/bin/sh", "-c", "./entrypointHeimdall.sh"]
+          env:
+          {{- range $key, $val := .Values.deployment.posLayerRest.env }}
+             - name: {{ $key }}
+               value:  {{ $val | quote }}
+          {{- end}}
+          image: "{{ .Values.deployment.posLayerRest.image.repository }}:{{ .Values.deployment.posLayerRest.image.tag }}"
+          imagePullPolicy: {{ .Values.deployment.posLayerRest.image.pullPolicy }}
+          name: pos-layer-rest
+          ports:
+          {{- range $index, $port := .Values.deployment.posLayerRest.ports }}
+            - containerPort: {{ $port }}
+          {{- end}}
+          workingDir: {{ .Values.deployment.posLayerRest.workingDir }}
+          volumeMounts:
+            - mountPath: {{ .Values.deployment.mountPath }}
+              name: {{ .Values.deployment.volumeName }}
+            - mountPath: "{{ .Values.deployment.posLayerRest.workingDir }}/entrypointHeimdall.sh"
+              name: {{ .Values.configname }}
+              subPath: entrypointHeimdall.sh           
+        - command: ["/bin/sh", "-c","./entrypointBor.sh"]
+          image: "{{ .Values.deployment.blockProducerLayer.image.repository }}:{{ .Values.deployment.blockProducerLayer.image.tag }}"
+          imagePullPolicy: {{ .Values.deployment.blockProducerLayer.image.pullPolicy }}
+          name: block-producer-layer
+          ports:
+          {{- range $index, $port := .Values.deployment.blockProducerLayer.ports }}
+            - containerPort: {{ $port }}
+          {{- end}}
+          env:
+            {{- range $key, $val := .Values.deployment.blockProducerLayer.env }}
+             - name: {{ $key }}
+               value:  {{ $val | quote }}
+            {{- end}}
+          workingDir: {{ .Values.deployment.blockProducerLayer.workingDir }}
+          volumeMounts:	
+            - mountPath: {{ .Values.deployment.mountPath }}
+              name: {{ .Values.deployment.volumeName }} 
+            - mountPath: "{{ .Values.deployment.blockProducerLayer.workingDir }}/entrypointBor.sh"
+              name: {{ .Values.configname }}
+              subPath: entrypointBor.sh 
+          resources:
+            requests:
+              memory: {{ .Values.deployment.blockProducerLayer.resources.requests.memory }}
+              cpu: {{ .Values.deployment.blockProducerLayer.resources.requests.cpu }}
+      restartPolicy: Always
+      volumes:
+        - name: {{ .Values.deployment.volumeName }}
+          persistentVolumeClaim:
+            claimName: {{ .Values.pvc.name }}
+        - name: {{ .Values.configname }}
+          configMap:
+            name: {{ .Values.configname }}
+            defaultMode: 0777
