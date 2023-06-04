@@ -31,6 +31,7 @@ else
 pv $filename | tar -I zstd -xf - -C ./$extract_dir --strip-components=3 && rm $filename
 fi
 done < $compiled_files
+touch ${HEIMDALLD_HOME}/bootstrapped
 }
 
 
